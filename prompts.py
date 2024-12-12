@@ -22,40 +22,31 @@ def extract_prompt_generator(link):
     return extract_prompt
 
 # Prompt to generate JSON with the generalised specifications
-def compare_and_generate_json_prompt(product_infos, parsed_headers):
+def compare_and_generate_json_prompt(product_info, parsed_headers):
     prompt_template = PromptTemplate(
         template="""
-        Generate JSON with keys using the headers {parsed_headers}. 
-        
+        Using the provided common headers {parsed_headers}, generate a JSON object for the product.
+
         Product Information:
-        {product_infos}
-        
+        {product_info}
+
         Instructions:
-        1. Identify specification that fall into each categories.
-        2. For each product, create a JSON object with the following structure:
+        1. Map attributes matching the common headers to the "specifications" field.
+        2. Place any remaining attributes under "additional_specifications".
+        3. The JSON structure should be as follows:
            - product_name: string
            - brand: string
-           - category: string (e.g., "audio equipment")
-           - specifications: array of objects, each containing:
-             - name: string (use common names across products)
-             - value: string or number
-             - unit: string (if applicable)
-           - additional_specifications: array of objects, (for any information that doesn't fit the standard format), each containing:
-             - name: string (use common names across products)
-             - value: string or number
-             - unit: string (if applicable)
-        3. Try to get additional_specification values from other sources and move it to specifications.
-        4. If value is missing or null get it from other sources.
-        4. Ensure all products have the same specification categories, using null for missing values.
-        5. Convert units to be consistent across products where possible.
-        
+           - category: string
+           - specifications: array of objects (attributes matching common headers)
+           - additional_specifications: array of objects (attributes not matching common headers)
+
         {format_instructions}
         """,
-        input_variables=["product_infos", "parsed_headers"],
+        input_variables=["product_info", "parsed_headers"],
         partial_variables={"format_instructions": specification_parser.get_format_instructions()},
     )
     
-    return prompt_template.format(product_infos=str(product_infos), parsed_headers=str(parsed_headers))
+    return prompt_template.format(product_info=str(product_info), parsed_headers=str(parsed_headers))
 
 # Generate common headers
 def identify_common_headers(product_infos):
@@ -67,17 +58,34 @@ def identify_common_headers(product_infos):
         {product_infos}
 
         Instructions:
-        1. Identify common specification headers across all products.
-        2. List specifications that don't fall into the common headers under 'additional'.
-        3. Return only the headers/keys, not the values.
+        1. Identify specification headers that are present across all products. These will be considered 'common headers'.
+        2. Any specification not present in all products should be categorized as 'additional'.
+        3. Return the result in JSON format with two keys:
+           - "common_headers": List of headers shared by all products.
+           - "additional_headers": List of headers unique to specific products.
 
         {format_instructions}
         """,
         input_variables=["product_infos"],
-        partial_variables={"format_instructions": specification_parser.get_format_instructions()},
+        partial_variables={"format_instructions": header_parser.get_format_instructions()},
     )
     
     return prompt_template.format(product_infos=str(product_infos))
+
+def extract_headers(product_info):
+    prompt_template = PromptTemplate(
+        template="""
+        Extract the following product's headers. from specifications and additional_specifications.
+        
+        Product Information:
+        {product_info}
+        
+        Instructions:
+        1. Identify the specific atributes from specifications and additional_specifications.
+        """
+    )
+    
+    return prompt_template.format(product_info=str(product_info))
 
 # JSON body class for sepcification
 class Specification(BaseModel):

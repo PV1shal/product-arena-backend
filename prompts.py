@@ -39,6 +39,7 @@ def compare_and_generate_json_prompt(product_info, parsed_headers):
            - category: string
            - specifications: array of objects (attributes matching common headers)
            - additional_specifications: array of objects (attributes not matching common headers)
+        4. There should be abolutely no line breaks.
 
         {format_instructions}
         """,
@@ -90,8 +91,8 @@ def extract_headers(product_info):
 # JSON body class for sepcification
 class Specification(BaseModel):
     name: str = Field(description="Name of the specification")
-    value: Union[str, int, float] = Field(description="Value of the specification")
-    unit: Optional[str] = Field(description="Unit of measurement, if applicable", default=None)
+    value: Union[str, List[str]] = Field(description="Value of the specification")
+    # unit: Optional[str] = Field(description="Unit of measurement, if applicable", default=None)
 
 # JSON body class for 
 class ProductSpecifications(BaseModel):
@@ -99,7 +100,7 @@ class ProductSpecifications(BaseModel):
     brand: str = Field(description="Brand of the product")
     category: str = Field(description="Category of the product (e.g., tech, audio)")
     specifications: List[Specification] = Field(description="List of product specifications")
-    additional_specifications: Optional[Specification] = Field(description="Additional information that doesn't fit into standard specifications", default=None)
+    additional_specifications: Optional[List[Specification]] = Field(description="Additional information that doesn't fit into standard specifications", default=None)
 
 # JSON class for common headers
 class CommonHeaders(BaseModel):

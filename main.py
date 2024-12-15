@@ -1,5 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import FastAPI
+
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
 from dotenv import load_dotenv
 import os
 from typing import List
@@ -7,9 +11,8 @@ from langchain_openai import ChatOpenAI
 from langchain_community.chat_models.perplexity import ChatPerplexity
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from threading import Thread
 
-from prompts import extract_prompt_generator, identify_common_headers, compare_and_generate_json_prompt, header_parser, specification_parser
+from prompts import extract_prompt_generator, identify_common_headers, compare_and_generate_json_prompt, ProductSpecifications, header_parser, specification_parser
 
 app = FastAPI()
 load_dotenv()
@@ -24,7 +27,7 @@ app.add_middleware(
 
 # Model for JSON
 JSON_llm = ChatOpenAI(
-    model="gpt-3.5-turbo-0125",
+    model="gpt-4o-mini",
     temperature=0,
     max_tokens=None,
     request_timeout=None,
@@ -44,20 +47,9 @@ class Link(BaseModel):
     
 class LinkList(BaseModel):
     links: List[str]
-    
-class Specification(BaseModel):
-    name: str
-    value: str
-
-class Product(BaseModel):
-    product_name: str
-    brand: str
-    category: str
-    specifications: List[Specification]
-    additional_specifications: List[Specification]
 
 class NewProductRequest(BaseModel):
-    prev_products: List[Product]
+    prev_products: List[ProductSpecifications]
     new_product: str
 
 @app.get("/")
@@ -92,6 +84,8 @@ async def newCompare(link_list: LinkList):
     # Generate JSONs in parallel
     with ThreadPoolExecutor() as executor:
         executor.map(generateJson, res)
+    
+    print(product_jsons)
     
     return product_jsons
 
@@ -136,3 +130,12 @@ async def addedCompare(request: NewProductRequest):
     new_product_json = specification_parser.parse(json_result.content)
     
     return new_product_json
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"Request body: {await request.body()}")
+    print(f"Validation error: {exc.errors()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": await request.body()}
+    )

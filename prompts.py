@@ -73,21 +73,6 @@ def identify_common_headers(product_infos):
     
     return prompt_template.format(product_infos=str(product_infos))
 
-def extract_headers(product_info):
-    prompt_template = PromptTemplate(
-        template="""
-        Extract the following product's headers. from specifications and additional_specifications.
-        
-        Product Information:
-        {product_info}
-        
-        Instructions:
-        1. Identify the specific atributes from specifications and additional_specifications.
-        """
-    )
-    
-    return prompt_template.format(product_info=str(product_info))
-
 # JSON body class for sepcification
 class Specification(BaseModel):
     name: str = Field(description="Name of the specification")
@@ -100,7 +85,7 @@ class ProductSpecifications(BaseModel):
     brand: str = Field(description="Brand of the product")
     category: str = Field(description="Category of the product (e.g., tech, audio)")
     specifications: List[Specification] = Field(description="List of product specifications")
-    additional_specifications: Optional[List[Specification]] = Field(description="Additional information that doesn't fit into standard specifications", default=None)
+    additional_specifications: Optional[List[Specification]] = Field(description="Additional information that doesn't fit into standard specifications", default=[])
 
 # JSON class for common headers
 class CommonHeaders(BaseModel):

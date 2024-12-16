@@ -53,16 +53,17 @@ def compare_and_generate_json_prompt(product_info, parsed_headers):
 def identify_common_headers(product_infos):
     prompt_template = PromptTemplate(
         template="""
-        Compare the following product information and identify common specification headers and additional specifications.
+        Provided informations of two products, you are tasked to return headers or keys for each specification.
 
         Product Information:
         {product_infos}
 
         Instructions:
-        1. Identify specification headers that are present across all products. These will be considered 'common headers'.
-        2. Any specification not present in all products should be categorized as 'additional'.
-        3. Return the result in JSON format with two keys:
-           - "common_headers": List of headers shared by all products.
+        1. Identify specification that are common across all products and return common headers for each. These will be considered 'common headers'. The header should be as SPECIFIC as possible.
+        2. Any specification that is common for both products SHOULD be categorized in 'specifications'.
+        3. Any specification that is not common in all products SHOULD be categorized as 'additional_headers'.
+        4. Return the result in JSON format with two keys:
+           - "specifications": List of headers shared by all products.
            - "additional_headers": List of headers unique to specific products.
 
         {format_instructions}
@@ -76,7 +77,7 @@ def identify_common_headers(product_infos):
 # JSON body class for sepcification
 class Specification(BaseModel):
     name: str = Field(description="Name of the specification")
-    value: Union[str, List[str]] = Field(description="Value of the specification")
+    value: str = Field(description="Value of the specification")
     # unit: Optional[str] = Field(description="Unit of measurement, if applicable", default=None)
 
 # JSON body class for 
@@ -89,7 +90,7 @@ class ProductSpecifications(BaseModel):
 
 # JSON class for common headers
 class CommonHeaders(BaseModel):
-    common_headers: List[str] = Field(description="List of common specification headers")
+    specifications: List[str] = Field(description="List of common specification headers")
     additional_headers: List[str] = Field(description="List of specifications that don't fall into common headers")
 
 specification_parser = JsonOutputParser(pydantic_object=ProductSpecifications)

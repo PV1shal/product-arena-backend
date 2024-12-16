@@ -91,40 +91,67 @@ async def newCompare(link_list: LinkList):
 
 @app.post("/compareWithNew")
 async def addedCompare(request: NewProductRequest):
-    def extract_headers(products):
-        headers = []
+    def extract_headers_with_order(products):
+        """
+        Extract common headers and additional headers manually from the JSON data while maintaining the order.
+        """
+        common_headers = []
+        additional_headers = []
         seen_headers = set()
+
+        # Iterate through all products to collect headers
         for product in products:
-            for spec in product.specifications:
-                if spec.name not in seen_headers:
-                    headers.append(spec.name)
-                    seen_headers.add(spec.name)
-        return headers
+            product_headers = [spec.name for spec in product.specifications]
+            product_additional_headers = [spec.name for spec in product.additional_specifications]
+
+            # If it's the first product, initialize common headers
+            if not common_headers:
+                common_headers = product_headers
+            else:
+                # Retain only headers that are common across all products
+                common_headers = [header for header in common_headers if header in product_headers]
+
+            # Add unique headers to additional headers while maintaining order
+            for header in product_headers + product_additional_headers:
+                if header not in seen_headers:
+                    additional_headers.append(header)
+                    seen_headers.add(header)
+
+        # Remove common headers from additional headers
+        additional_headers = [header for header in additional_headers if header not in common_headers]
+
+        return common_headers, additional_headers
 
     def get_product_info(product_link):
+        """
+        Fetch new product information using the provided link.
+        """
         custom_prompt_to_extract = extract_prompt_generator(product_link)
         return specification_llm_pplx.invoke(custom_prompt_to_extract).content
 
     # Run both operations in parallel using ThreadPoolExecutor
     with ThreadPoolExecutor() as executor:
-        # Submit both tasks
-        future_headers = executor.submit(extract_headers, request.prev_products)
-        future_product_info = executor.submit(get_product_info, request.new_product)
+        # Submit tasks
+        future_product_infos = executor.map(lambda p: p.dict(), request.prev_products)
+        future_new_product_info = executor.submit(get_product_info, request.new_product)
         
-        # Get results from both threads
-        headers = future_headers.result()
-        new_product_info = future_product_info.result()
+        # Get results from threads
+        product_infos = list(future_product_infos)
+        new_product_info = future_new_product_info.result()
+
+    # Extract headers manually from the JSON data
+    common_headers, additional_headers = extract_headers_with_order(request.prev_products)
 
     # Create headers dictionary for JSON generation
     headers_dict = {
-        "common_headers": headers,
-        "additional_headers": []
+        "common_headers": common_headers,
+        "additional_headers": additional_headers,
     }
-    
+
     # Generate JSON for new product using existing headers
     compared_specification_json_prompt = compare_and_generate_json_prompt(
         new_product_info, 
-        headers_dict
+        headers_dict,
     )
     json_result = JSON_llm.invoke(compared_specification_json_prompt)
     new_product_json = specification_parser.parse(json_result.content)

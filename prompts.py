@@ -10,8 +10,10 @@ def extract_prompt_generator(link):
         {
             "role": "system",
             "content": """
-                - Given a link to an item, extract an exhaustive spec sheet of the product all the various sources.
-                - Make sure to get specs from ATLEAST 5 sources.
+                - Given a link to a product, extract an exhaustive spec sheet and reviews of the product from various sources.
+                - Make sure to get specs from AT LEAST 5 sources.
+                - For reviews, collect at least 10 reviews from different platforms (e.g., Amazon, Reddit, product website).
+                - For each review, include the platform name and the review text.
             """
         },
         {
@@ -33,13 +35,15 @@ def compare_and_generate_json_prompt(product_info, parsed_headers):
         Instructions:
         1. Map attributes matching the common headers to the "specifications" field.
         2. Place any remaining attributes under "additional_specifications".
-        3. The JSON structure should be as follows:
+        3. Include reviews in the "reviews" field.
+        4. The JSON structure should be as follows:
            - product_name: string
            - brand: string
            - category: string
            - specifications: array of objects (attributes matching common headers)
            - additional_specifications: array of objects (attributes not matching common headers)
-        4. There should be abolutely no line breaks.
+           - reviews: array of objects (each containing platform and review text)
+        5. There should be absolutely no line breaks.
 
         {format_instructions}
         """,
@@ -80,13 +84,19 @@ class Specification(BaseModel):
     value: str = Field(description="Value of the specification")
     # unit: Optional[str] = Field(description="Unit of measurement, if applicable", default=None)
 
+class Review(BaseModel):
+    platform: str = Field(description="Name of the platform where the review was posted (e.g., Reddit, Amazon)")
+    review: str = Field(description="Review of the product")
+
 # JSON body class for 
 class ProductSpecifications(BaseModel):
     product_name: str = Field(description="Name of the product")
     brand: str = Field(description="Brand of the product")
     category: str = Field(description="Category of the product (e.g., tech, audio)")
+    image_link: str = Field(description="Image link of the product")
     specifications: List[Specification] = Field(description="List of product specifications")
     additional_specifications: Optional[List[Specification]] = Field(description="Additional information that doesn't fit into standard specifications", default=[])
+    reviews: List[Review] = Field(description="Reviews of product from various platforms", default=[])
 
 # JSON class for common headers
 class CommonHeaders(BaseModel):

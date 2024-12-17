@@ -81,6 +81,8 @@ async def newCompare(link_list: LinkList):
     headers_result = JSON_llm.invoke(headers_prompt)
     parsed_headers = header_parser.parse(headers_result.content)
     
+    print(parsed_headers)
+    
     # Generate JSONs in parallel
     with ThreadPoolExecutor() as executor:
         executor.map(generateJson, res)

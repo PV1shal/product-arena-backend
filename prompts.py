@@ -12,8 +12,15 @@ def extract_prompt_generator(link):
             "content": """
                 - Given a link to a product, extract an exhaustive spec sheet and reviews of the product from various sources.
                 - Make sure to get specs from AT LEAST 5 sources.
-                - For reviews, collect at least 10 reviews from different platforms (e.g., Amazon, Reddit, product website).
-                - For each review, include the platform name and the review text.
+                - For reviews, collect at least 20 reviews in total:
+                  - At least 10 positive (good) reviews
+                  - At least 10 negative (bad) reviews
+                - Reviews should come from different platforms (e.g., Amazon, Reddit, product website).
+                - For each review, include:
+                  - The platform name
+                  - The review text
+                  - A classification as either "good" or "bad"
+                - Ensure that the reviews are specific and relevant to the product's features and performance.
             """
         },
         {
@@ -35,14 +42,14 @@ def compare_and_generate_json_prompt(product_info, parsed_headers):
         Instructions:
         1. Map attributes matching the common headers to the "specifications" field.
         2. Place any remaining attributes under "additional_specifications".
-        3. Include reviews in the "reviews" field.
+        3. Include reviews in the "reviews" field (at least 20 total, with 10 good and 10 bad).
         4. The JSON structure should be as follows:
            - product_name: string
            - brand: string
            - category: string
            - specifications: array of objects (attributes matching common headers)
            - additional_specifications: array of objects (attributes not matching common headers)
-           - reviews: array of objects (each containing platform and review text)
+           - reviews: array of objects (each containing platform, review text, and classification as 'good' or 'bad')
         5. There should be absolutely no line breaks.
 
         {format_instructions}
@@ -85,18 +92,19 @@ class Specification(BaseModel):
     # unit: Optional[str] = Field(description="Unit of measurement, if applicable", default=None)
 
 class Review(BaseModel):
-    platform: str = Field(description="Name of the platform where the review was posted (e.g., Reddit, Amazon)")
-    review: str = Field(description="Review of the product")
+    platform: str = Field(description="Name of the platform where the review was posted")
+    review: str = Field(description="Text of the review")
+    classification: str = Field(description="Classification of the review as either 'good' or 'bad'")
 
 # JSON body class for 
 class ProductSpecifications(BaseModel):
     product_name: str = Field(description="Name of the product")
     brand: str = Field(description="Brand of the product")
     category: str = Field(description="Category of the product (e.g., tech, audio)")
-    image_link: str = Field(description="Image link of the product")
+    # image_link: str = Field(description="Image link of the product")
     specifications: List[Specification] = Field(description="List of product specifications")
     additional_specifications: Optional[List[Specification]] = Field(description="Additional information that doesn't fit into standard specifications", default=[])
-    reviews: List[Review] = Field(description="Reviews of product from various platforms", default=[])
+    reviews: List[Review] = Field(description="List of product reviews (at least 20, with 10 good and 10 bad)")
 
 # JSON class for common headers
 class CommonHeaders(BaseModel):

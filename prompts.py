@@ -5,12 +5,12 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, Field
 
 # Generates specifications
-def extract_prompt_generator(link):
+def extract_prompt_generator(input):
     extract_prompt = [
         {
             "role": "system",
             "content": """
-                - Given a link to a product, extract an exhaustive spec sheet and reviews of the product from various sources.
+                - Given a link or name of a product, extract an exhaustive spec sheet and reviews of the product from various sources.
                 - Make sure to get specs from AT LEAST 5 sources.
                 - For reviews, collect at least 20 reviews in total:
                   - At least 10 positive (good) reviews
@@ -25,7 +25,7 @@ def extract_prompt_generator(link):
         },
         {
             "role": "human",
-            "content": link
+            "content": input
         }
     ]
     return extract_prompt
